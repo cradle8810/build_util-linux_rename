@@ -1,0 +1,111 @@
+---
+name: Build rename(1) on util-linux for macOS(arm64)
+
+on:
+  push:
+    branches:
+      - '**'
+      - "!master"
+    tags:
+      - "v[0-9]+.[0-9]+"
+  workflow_dispatch:
+
+jobs:
+  MacOS:
+    runs-on: macos-14
+    env:
+      CC: clang
+      CXX: clang++
+    steps:
+      - name: Checkout util-linux default branch
+        uses: actions/checkout@v4
+        with:
+          repository: 'util-linux/util-linux'
+          fetch-depth: 1
+
+      - name: Setup Build Environment
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          brew install \
+            automake \
+            libtool
+          
+      - name: Run aclocal
+        run: |
+          aclocal -I m4
+
+      - name: Run autopoint
+        run: |
+          autopoint
+
+      - name: Run autoconf
+        run: |
+          autoconf
+
+      - name: Run autoheader
+        run: |
+          autoheader
+
+      - name: Create ltmain.sh
+        run: |
+          glibtoolize -c
+
+      - name: Run automake
+        run: |
+          automake --force-missing --add-missing
+
+      - name: Run configure
+        continue-on-error: true
+        run: |
+          ./configure
+
+      - name: Make rename
+        run: |
+          make rename
+
+      - name: Check rename file type
+        run: |
+          file rename
+
+      - name: Check rename help
+        run: |
+          ./rename --help
+
+      - name: Store Rename Executable file
+        uses: actions/upload-artifact@v4
+        with:
+          name: rename-mac
+          path: rename
+          overwrite: true
+
+  Release:
+    if: startsWith(github.event.ref, 'refs/tags/v')
+    runs-on: macos-latest
+    needs: MacOS
+    steps:
+      - name: Download Artifact from Ubuntu-build
+        uses: actions/download-artifact@v4
+        with:
+          name: rename-mac
+
+      - name: Create release
+        id: release_id
+        uses: actions/create-release@v1.1.4
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: ${{ github.ref }}
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Asset (Ubuntu)
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.release_id.outputs.upload_url }}
+          asset_path: ./rename
+          asset_name: rename-mac
+          asset_content_type: binary/octet-stream
