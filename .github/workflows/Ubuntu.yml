@@ -1,0 +1,130 @@
+---
+name: Build rename(1) on util-linux
+
+on:
+  push:
+    branches:
+      - '**'
+      - "!master"
+    tags:
+      - "v[0-9]+.[0-9]+"
+  workflow_dispatch:
+
+jobs:
+  Ubuntu:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout util-linux default branch
+        uses: actions/checkout@v4
+        with:
+          repository: 'util-linux/util-linux'
+          fetch-depth: 1
+      
+      - name: Setup Build Environment
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          sudo -E bash -c "echo 'deb-src http://archive.ubuntu.com/ubuntu/ jammy main restricted universe multiverse' >> /etc/apt/sources.list" && \
+          sudo -E apt -y update --fix-missing && \
+          sudo -E apt -y build-dep util-linux && \
+          sudo -E apt -y install \
+            asciidoctor \
+            autoconf \
+            bc \
+            bison \
+            btrfs-progs \
+            dmsetup \
+            dnsutils \
+            flex \
+            gawk \
+            git \
+            gpg-agent \
+            gtk-doc-tools \
+            iproute2 \
+            lcov \
+            libcap-ng-dev \
+            libncursesw5-dev \
+            libpam-dev \
+            libsqlite3-dev \
+            libudev-dev \
+            mdadm \
+            meson \
+            ntp \
+            python3-dev \
+            socat \
+            sqlite3 \
+            squashfs-tools
+ 
+      - name: Run aclocal
+        run: |
+          aclocal -I m4
+
+      - name: Run autopoint
+        run: |
+          autopoint
+
+      - name: Run autoconf
+        run: |
+          autoconf
+
+      - name: Run autoheader
+        run: |
+          autoheader
+
+      - name: Create ltmain.sh
+        run: |
+          libtoolize -c
+
+      - name: Run automake
+        run: |
+          automake --force-missing --add-missing
+
+      - name: Run configure
+        run: |
+          ./configure \
+            --disable-doc \
+            --disable-shared \
+            --enable-small \
+            --enable-static
+
+      - name: Make rename.ul
+        run: |
+          make rename
+
+      - name: Store Rename Executable file
+        uses: actions/upload-artifact@v4
+        with:
+          name: rename-ubuntu
+          path: rename
+          overwrite: true
+
+  Release:
+    if: startsWith(github.event.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    needs: Ubuntu
+    steps:
+      - name: Download Artifact from Ubuntu-build
+        uses: actions/download-artifact@v4
+        with:
+          name: rename-ubuntu
+
+      - name: Create release
+        id: release_id
+        uses: actions/create-release@v1.1.4
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: ${{ github.ref }}
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Asset (Ubuntu)
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.release_id.outputs.upload_url }}
+          asset_path: ./rename
+          asset_name: rename-ubuntu
+          asset_content_type: binary/octet-stream
