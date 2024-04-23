@@ -19,7 +19,7 @@ jobs:
         with:
           repository: 'util-linux/util-linux'
           fetch-depth: 1
-      
+
       - name: Setup Build Environment
         env:
           DEBIAN_FRONTEND: noninteractive
@@ -54,7 +54,7 @@ jobs:
             socat \
             sqlite3 \
             squashfs-tools
- 
+
       - name: Run aclocal
         run: |
           aclocal -I m4
@@ -85,11 +85,20 @@ jobs:
             --disable-doc \
             --disable-shared \
             --enable-small \
-            --enable-static
+            --enable-static \
+            LDFLAGS='--static'
 
-      - name: Make rename.ul
+      - name: Make rename
         run: |
           make rename
+
+      - name: Check rename file type
+        run: |
+          file rename
+
+      - name: Check rename help
+        run: |
+          ./rename --help
 
       - name: Store Rename Executable file
         uses: actions/upload-artifact@v4
