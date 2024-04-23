@@ -1,5 +1,5 @@
 ---
-name: Build rename(1) on util-linux
+name: Build rename(1) on util-linux for Ubuntu
 
 on:
   push:
@@ -14,11 +14,11 @@ jobs:
   Ubuntu:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout util-linux default branch
+      - name: Checkout this repository
         uses: actions/checkout@v4
-        with:
-          repository: 'util-linux/util-linux'
-          fetch-depth: 1
+
+      - name: Initialize
+        uses: "./.github/actions"
 
       - name: Setup Build Environment
         env:
@@ -116,17 +116,6 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: rename-ubuntu
-
-      - name: Create release
-        id: release_id
-        uses: actions/create-release@v1.1.4
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: ${{ github.ref }}
-          draft: false
-          prerelease: false
 
       - name: Upload Release Asset (Ubuntu)
         uses: actions/upload-release-asset@v1.0.1
