@@ -1,0 +1,20 @@
+---
+name: "composite sample"
+outputs:
+  release-id:
+    value: ${{ step.create_release_id }}
+
+runs:
+  # Composite Actionであることを指定
+  using: "composite"
+  steps:
+    - name: Create release
+      id: create_release_id
+      uses: actions/create-release@v1.1.4
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: ${{ github.ref }}
+        draft: false
+        prerelease: false

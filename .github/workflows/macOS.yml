@@ -89,23 +89,12 @@ jobs:
         with:
           name: rename-mac
 
-      - name: Create release
-        id: release_id
-        uses: actions/create-release@v1.1.4
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: ${{ github.ref }}
-          draft: false
-          prerelease: false
-
       - name: Upload Release Asset (Ubuntu)
         uses: actions/upload-release-asset@v1.0.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.release_id.outputs.upload_url }}
+          upload_url: ${{ release_id.outputs.upload_url }}
           asset_path: ./rename
           asset_name: rename-mac
           asset_content_type: binary/octet-stream
